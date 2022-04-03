@@ -1,3 +1,6 @@
+# ROS_Packages
+Implememtation of differerent ROS packages for autonomous robot navigation
+
 ## Getting started
 put the packages: perception, localization and custom messages in projectFolder/src.
 
