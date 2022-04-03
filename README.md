@@ -18,7 +18,7 @@ sudo python3 setup.py install
 Then, you can test this package on your webcam:
 ```
 ros2 run perception cam_publisher   # to get images from streaming
-ros2 run perception detect_objects  # to take image and compute bounding boxes
+ros2 run perception detect_objects --ros-args -p source:='0' -p visualize:=0
 ros2 run perception bbox_subscriber # to get bounding boxes
 ```
 
