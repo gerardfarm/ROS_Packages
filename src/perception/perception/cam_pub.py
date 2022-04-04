@@ -28,7 +28,16 @@ class ImagePublisher(Node):
          
     # Create a VideoCapture object
     # The argument '0' gets the default webcam.
-    self.cap = cv2.VideoCapture(0)
+    self.declare_parameters(
+                namespace='',
+                parameters=[
+                        ('source', '0')
+                        ]
+        )
+
+    self.source = str(self.get_parameter('source').value)
+
+    self.cap = cv2.VideoCapture(int(self.source))
          
     # Used to convert between ROS and OpenCV images
     self.br = CvBridge()

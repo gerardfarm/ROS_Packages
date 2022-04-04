@@ -34,8 +34,15 @@ class Camera_subscriber(Node):
         cfg = '/home/alisahili/Gerard_Farm/ros_ws/src/perception/perception/object_detection/models/yolov5s.yaml'
         hyp = '/home/alisahili/Gerard_Farm/ros_ws/src/perception/perception/hyp.scratch.yaml'
 
-        self.source = '0'    # 0 for webcam
-        self.view_img=True  # show results
+        self.declare_parameters(
+                namespace='',
+                parameters=[
+                        ('visualize', True)
+                        ]
+        )
+
+        self.view_img = self.get_parameter('visualize').value
+        #self.view_img=True  # show results
 
         self.imgsz=640  # inference size (pixels)
         self.conf_thres=0.25  # confidence threshold
@@ -72,8 +79,6 @@ class Camera_subscriber(Node):
         # Dataloader
         # view_img = check_imshow() # True
         cudnn.benchmark = True  # set True to speed up constant image size inference
-
-        # dataset = LoadStreams(self.source, img_size=self.imgsz, stride=stride)
 
         # Run inference
         if self.device.type != 'cpu':
@@ -138,7 +143,8 @@ class Camera_subscriber(Node):
         # Apply NMS
         self.pred = non_max_suppression(self.pred, self.conf_thres, self.iou_thres, 
                             self.classes, self.agnostic_nms, max_det=self.max_det)
-                            
+        self.publish_ok = True
+
         t2 = time_synchronized()
 
         # Apply Classifier
@@ -174,36 +180,39 @@ class Camera_subscriber(Node):
                 cv2.waitKey(1)  # 1 millisecond
 
     def timer_callback(self):
-        
-        boxes_msg = BBoxList()
+        if self.publish_ok:
+            boxes_msg = BBoxList()
 
-        # Process detections
-        for i, det in enumerate(self.pred):  # detections per image
-            s = f'{i}: '
-            s += '%gx%g ' % self.img.shape[2:]  # print string
+            # Process detections
+            for i, det in enumerate(self.pred):  # detections per image
+                s = f'{i}: '
+                s += '%gx%g ' % self.img.shape[2:]  # print string
 
-            if len(det):
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(self.img.shape[2:], det[:, :4], self.img0.shape).round()
+                if len(det):
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_coords(self.img.shape[2:], det[:, :4], self.img0.shape).round()
 
-                # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                
-                for *xyxy, conf, cls in reversed(det):
-                    c = int(cls)  # integer class
-                    label = None if self.hide_labels else (self.names[c] if self.hide_conf else f'{self.names[c]} {conf:.2f}')
+                    # Print results
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()  # detections per class
+                        s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    
+                    for *xyxy, conf, cls in reversed(det):
+                        c = int(cls)  # integer class
+                        label = None if self.hide_labels else (self.names[c] if self.hide_conf else f'{self.names[c]} {conf:.2f}')
 
-                    obj = BBox()
-                    obj.bbox_coords = np.array([int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])], dtype=np.uint32)
-                    obj.class_label = int(cls)
-                    obj.score = float(conf)
+                        obj = BBox()
+                        obj.bbox_coords = np.array([int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])], dtype=np.uint32)
+                        obj.class_label = int(cls)
+                        obj.score = float(conf)
 
-                    boxes_msg.bboxes.append(obj)
+                        boxes_msg.bboxes.append(obj)
 
-        self.publisher_.publish(boxes_msg)
-        self.get_logger().info('Publishing bounding boxes')
+            self.publisher_.publish(boxes_msg)
+            self.get_logger().info('Publishing bounding boxes')
+            self.publish_ok = False
+        else:
+            self.get_logger().info('No predictions received!!!')
 
 
 def main(args=None):
