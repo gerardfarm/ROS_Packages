@@ -9,6 +9,15 @@ First, you need to build packages:
 colcon build
 . install/setup.bash
 ```
+Then to run the whole project, you can simply run:
+```
+ros2 launch brain brain.launch.py
+```
+
+For more details about each package, see the following sections.
+
+### Custom_msgs
+Nothing should be run in this package. This one is used to define our sent and received messages between different nodes.
 
 ### Perception
 The ```perception``` package is used to detect objects in a streaming and publish necessary informations about bounding boxes (coordinates, class label, confidence score).
